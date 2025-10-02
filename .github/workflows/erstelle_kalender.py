@@ -8,7 +8,7 @@ Erstellt eine statische Wochenübersicht (Mo–Fr) als HTML aus einer ICS-Quelle
 - Performance: ein eingebetteter CSS-Block, Systemschriften
 - Aktueller Tag: dezente grüne Umrandung
 - Fußzeile: steht immer am Seitenende (Sticky-Footer)
-- Branding: Kopfzeilen-Grün fest im Code
+- Branding: Kopfzeilen-Grün fest im Code (#527A42)
 
 Voraussetzung: Environment-Variable ICS_URL mit der öffentlich erreichbaren ICS-Datei.
 Ausgabe: public/calendar/index.html
@@ -150,8 +150,8 @@ def render_html(
   --border: #e5e7eb;
   --radius: 12px;
 
-  --brand: #3f6f3a;      /* Kopfzeilen-Grün */
-  --brand2: #3f6f3a;
+  --brand: #527A42;      /* Kopfzeilen-Grün (R82 G122 B66 / #527A42) */
+  --brand2: #527A42;
   --accent: #4f9f5a;     /* Badges/Hervorhebung */
   --accent-soft: #eaf6ee;
 }}
