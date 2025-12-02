@@ -7,7 +7,7 @@ on:
 
 permissions:
   issues: write
-  contents: none
+  contents: write
 
 concurrency:
   group: ${{ github.workflow }}
@@ -20,12 +20,16 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}  # gh CLI nutzt dieses Token automatisch
     steps:
+      - name: Prepare timestamp
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "DATE=$(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> "$GITHUB_ENV"
+
       - name: Keepalive
         shell: bash
         run: |
           set -euo pipefail
-
-          DATE="$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
 
           retry() {
             local max="$1"; shift
@@ -68,3 +72,31 @@ jobs:
           retry 3 gh issue comment "$ISSUE_NUMBER" \
             --repo "$GITHUB_REPOSITORY" \
             --body "$BODY"
+
+      - name: Checkout default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 2
+
+      - name: Create empty keepalive commit if repository is quiet
+        shell: bash
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+
+          last_commit_ts=$(git log -1 --format=%ct)
+          now=$(date +%s)
+          days_since=$(( (now - last_commit_ts) / 86400 ))
+
+          if [ "$days_since" -lt 45 ]; then
+            echo "Last commit is ${days_since} days old; no keepalive commit needed."
+            exit 0
+          fi
+
+          echo "Creating keepalive empty commit (last commit ${days_since} days ago)."
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit --allow-empty -m "chore: keepalive (${DATE})"
+          git push origin HEAD:"${DEFAULT_BRANCH}"
