@@ -73,20 +73,41 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --body "$BODY"
 
+      - name: Determine default branch
+        id: default_branch
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          default_branch=$(gh repo view "$GITHUB_REPOSITORY" --json defaultBranchRef --jq '.defaultBranchRef.name')
+
+          if [ -z "${default_branch:-}" ]; then
+            echo "Could not determine default branch" >&2
+            exit 1
+          fi
+
+          echo "Resolved default branch: ${default_branch}"
+          echo "name=${default_branch}" >> "$GITHUB_OUTPUT"
+
       - name: Checkout default branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.repository.default_branch }}
+          ref: ${{ steps.default_branch.outputs.name }}
           fetch-depth: 2
 
       - name: Create empty keepalive commit if repository is quiet
         shell: bash
         env:
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          DEFAULT_BRANCH: ${{ steps.default_branch.outputs.name }}
         run: |
           set -euo pipefail
 
-          last_commit_ts=$(git log -1 --format=%ct)
+          git fetch --prune origin "$DEFAULT_BRANCH"
+          git checkout "$DEFAULT_BRANCH"
+
+          last_commit_ts=$(git log -1 --format=%ct origin/"$DEFAULT_BRANCH")
           now=$(date +%s)
           days_since=$(( (now - last_commit_ts) / 86400 ))
 
